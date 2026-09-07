@@ -1,0 +1,13 @@
+create-pages:
+  script:
+    - mkdir public
+    - cp index.html public/
+    - cp style.css public/
+    - cp app.js public/
+    - cp manifest.json public/
+
+  pages:
+    publish: public
+
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
