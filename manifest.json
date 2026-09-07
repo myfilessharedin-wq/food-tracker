@@ -1,0 +1,11 @@
+{
+    "name": "Моя еда",
+    "short_name": "Моя еда",
+    "description": "Дневник питания и расходов",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#f6f6f7",
+    "theme_color": "#ffffff",
+    "orientation": "portrait",
+    "lang": "ru"
+}
