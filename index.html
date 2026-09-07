@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Моя еда">
+
+    <title>Моя еда</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="app-header">
+        <div>
+            <h1>Моя еда</h1>
+            <p id="currentDate"></p>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="summary">
+            <div class="summary-card">
+                <span>Калории</span>
+                <strong id="totalCalories">0</strong>
+                <small>ккал</small>
+            </div>
+
+            <div class="summary-card">
+                <span>Белок</span>
+                <strong id="totalProtein">0</strong>
+                <small>г</small>
+            </div>
+
+            <div class="summary-card">
+                <span>Расходы</span>
+                <strong id="totalCost">0</strong>
+                <small>₽</small>
+            </div>
+        </section>
+
+        <section class="meals-section">
+
+            <div class="section-title">
+                <h2>Сегодня</h2>
+                <button class="add-button" onclick="openAddMeal()">
+                    + Добавить
+                </button>
+            </div>
+
+            <div id="mealsList"></div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-icon">🍽️</div>
+                <h3>Пока ничего нет</h3>
+                <p>Добавь свой первый приём пищи</p>
+                <button onclick="openAddMeal()">Добавить блюдо</button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Модальное окно -->
+    <div id="modal" class="modal hidden">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h2>Добавить блюдо</h2>
+                <button onclick="closeModal()">×</button>
+            </div>
+
+            <label>
+                Приём пищи
+                <select id="mealType">
+                    <option value="breakfast">Завтрак</option>
+                    <option value="lunch">Обед</option>
+                    <option value="dinner">Ужин</option>
+                    <option value="snack">Перекус</option>
+                </select>
+            </label>
+
+            <label>
+                Название блюда
+                <input
+                    type="text"
+                    id="mealName"
+                    placeholder="Например, курица терияки"
+                >
+            </label>
+
+            <label>
+                Магазин
+                <input
+                    type="text"
+                    id="mealStore"
+                    placeholder="Например, ВкусВилл"
+                >
+            </label>
+
+            <div class="two-columns">
+
+                <label>
+                    Цена, ₽
+                    <input
+                        type="number"
+                        id="mealPrice"
+                        placeholder="320"
+                    >
+                </label>
+
+                <label>
+                    Калории
+                    <input
+                        type="number"
+                        id="mealCalories"
+                        placeholder="450"
+                    >
+                </label>
+
+            </div>
+
+            <div class="three-columns">
+
+                <label>
+                    Белки
+                    <input
+                        type="number"
+                        id="mealProtein"
+                        placeholder="30"
+                    >
+                </label>
+
+                <label>
+                    Жиры
+                    <input
+                        type="number"
+                        id="mealFat"
+                        placeholder="15"
+                    >
+                </label>
+
+                <label>
+                    Углеводы
+                    <input
+                        type="number"
+                        id="mealCarbs"
+                        placeholder="40"
+                    >
+                </label>
+
+            </div>
+
+            <button class="save-button" onclick="saveMeal()">
+                Добавить блюдо
+            </button>
+
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>
