@@ -1,7 +1,10 @@
-// Firebase SDK
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDKDBkruxepuRR6zMMZdTGX0X-KF1yfuvo",
   authDomain: "food-84188.firebaseapp.com",
@@ -12,8 +15,7 @@ const firebaseConfig = {
   measurementId: "G-R53GE9MFGT"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-export { db };
+const analytics = getAnalytics(app);
 
