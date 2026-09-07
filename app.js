@@ -1,176 +1,724 @@
-let meals = JSON.parse(localStorage.getItem("meals")) || [];
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-const mealNames = {
-    breakfast: "Завтрак",
-    lunch: "Обед",
-    dinner: "Ужин",
-    snack: "Перекус"
-};
+import { db } from "./firebase.js";
 
-function saveToStorage() {
-    localStorage.setItem("meals", JSON.stringify(meals));
+
+let foods = [];
+let meals = [];
+
+let currentWeekStart = getMonday(new Date());
+
+let selectedDate = null;
+let selectedMealType = null;
+let selectedPerson = "me";
+
+
+const plannerBody = document.getElementById("plannerBody");
+const foodList = document.getElementById("foodList");
+
+const weekLabel = document.getElementById("weekLabel");
+const currentWeek = document.getElementById("currentWeek");
+
+const weekTotal = document.getElementById("weekTotal");
+const plannedDays = document.getElementById("plannedDays");
+
+
+/* -----------------------------
+   ДАТЫ
+----------------------------- */
+
+function formatDate(date) {
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long"
+  });
 }
 
-function openAddMeal() {
-    document.getElementById("modal").classList.remove("hidden");
+
+function formatShortDate(date) {
+  return date.toISOString().split("T")[0];
 }
 
-function closeModal() {
-    document.getElementById("modal").classList.add("hidden");
+
+function getMonday(date) {
+  const result = new Date(date);
+  const day = result.getDay();
+
+  const difference = day === 0 ? -6 : 1 - day;
+
+  result.setDate(result.getDate() + difference);
+  result.setHours(0, 0, 0, 0);
+
+  return result;
 }
 
-function saveMeal() {
 
-    const meal = {
-        id: Date.now(),
-
-        type: document.getElementById("mealType").value,
-
-        name: document.getElementById("mealName").value || "Без названия",
-
-        store: document.getElementById("mealStore").value || "",
-
-        price: Number(document.getElementById("mealPrice").value) || 0,
-
-        calories: Number(document.getElementById("mealCalories").value) || 0,
-
-        protein: Number(document.getElementById("mealProtein").value) || 0,
-
-        fat: Number(document.getElementById("mealFat").value) || 0,
-
-        carbs: Number(document.getElementById("mealCarbs").value) || 0
-    };
-
-    meals.push(meal);
-
-    saveToStorage();
-
-    renderMeals();
-
-    closeModal();
-
-    clearForm();
+function getWeekDates() {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(currentWeekStart);
+    date.setDate(date.getDate() + index);
+    return date;
+  });
 }
 
-function clearForm() {
 
-    document.getElementById("mealName").value = "";
-    document.getElementById("mealStore").value = "";
-    document.getElementById("mealPrice").value = "";
-    document.getElementById("mealCalories").value = "";
-    document.getElementById("mealProtein").value = "";
-    document.getElementById("mealFat").value = "";
-    document.getElementById("mealCarbs").value = "";
+function getMealName(type) {
+  if (type === "breakfast") return "Завтрак";
+  if (type === "lunch") return "Обед";
+  return "Ужин";
 }
 
-function deleteMeal(id) {
 
-    meals = meals.filter(meal => meal.id !== id);
+/* -----------------------------
+   FIRESTORE
+----------------------------- */
 
-    saveToStorage();
+async function loadFoods() {
 
-    renderMeals();
+  const snapshot = await getDocs(
+    collection(db, "foods")
+  );
+
+  foods = snapshot.docs.map(item => ({
+    id: item.id,
+    ...item.data()
+  }));
+
+  renderFoods();
+  updateFoodSelect();
 }
 
-function renderMeals() {
 
-    const list = document.getElementById("mealsList");
-    const emptyState = document.getElementById("emptyState");
+async function loadMeals() {
 
-    list.innerHTML = "";
+  const dates = getWeekDates().map(formatShortDate);
 
-    if (meals.length === 0) {
+  meals = [];
 
-        emptyState.style.display = "block";
+  for (const date of dates) {
 
-    } else {
+    const q = query(
+      collection(db, "meals"),
+      where("date", "==", date)
+    );
 
-        emptyState.style.display = "none";
+    const snapshot = await getDocs(q);
 
-        meals.forEach(meal => {
+    snapshot.forEach(item => {
+      meals.push({
+        id: item.id,
+        ...item.data()
+      });
+    });
+  }
 
-            const card = document.createElement("div");
+  renderPlanner();
+}
 
-            card.className = "meal-card";
 
-            card.innerHTML = `
-                <div class="meal-info">
+/* -----------------------------
+   БЛЮДА
+----------------------------- */
 
-                    <h3>${meal.name}</h3>
+document
+  .getElementById("addFoodBtn")
+  .addEventListener("click", () => {
 
-                    <p>${mealNames[meal.type]}${meal.store ? " · " + meal.store : ""}</p>
+    document
+      .getElementById("foodModal")
+      .classList.remove("hidden");
 
-                    <p>
-                        Б ${meal.protein} г ·
-                        Ж ${meal.fat} г ·
-                        У ${meal.carbs} г
-                    </p>
+  });
 
-                </div>
 
-                <div class="meal-calories">
+document
+  .getElementById("closeFoodModal")
+  .addEventListener("click", closeFoodModal);
 
-                    <strong>${meal.calories} ккал</strong>
 
-                    <span>${meal.price} ₽</span>
+function closeFoodModal() {
 
-                    <button
-                        class="delete-button"
-                        onclick="deleteMeal(${meal.id})"
-                    >
-                        ×
-                    </button>
+  document
+    .getElementById("foodModal")
+    .classList.add("hidden");
 
-                </div>
-            `;
+}
 
-            list.appendChild(card);
-        });
+
+document
+  .getElementById("saveFoodBtn")
+  .addEventListener("click", saveFood);
+
+
+async function saveFood() {
+
+  const name =
+    document.getElementById("foodName").value.trim();
+
+  const store =
+    document.getElementById("foodStore").value.trim();
+
+  const price =
+    Number(document.getElementById("foodPrice").value);
+
+  const comment =
+    document.getElementById("foodComment").value.trim();
+
+
+  if (!name) {
+    alert("Напиши название блюда");
+    return;
+  }
+
+
+  if (!price) {
+    alert("Укажи цену");
+    return;
+  }
+
+
+  await addDoc(
+    collection(db, "foods"),
+    {
+      name,
+      store,
+      price,
+      comment,
+      createdAt: new Date().toISOString()
     }
+  );
 
-    updateSummary();
+
+  document.getElementById("foodName").value = "";
+  document.getElementById("foodStore").value = "";
+  document.getElementById("foodPrice").value = "";
+  document.getElementById("foodComment").value = "";
+
+  closeFoodModal();
+
+  await loadFoods();
 }
+
+
+function renderFoods() {
+
+  foodList.innerHTML = "";
+
+  if (foods.length === 0) {
+
+    foodList.innerHTML = `
+      <div class="food-card">
+        Пока нет блюд.<br>
+        Нажми «+ Блюдо», чтобы добавить первое.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  foods.forEach(food => {
+
+    const card = document.createElement("div");
+
+    card.className = "food-card";
+
+    card.innerHTML = `
+      <h3>${escapeHtml(food.name)}</h3>
+
+      <div class="food-store">
+        ${escapeHtml(food.store || "Магазин не указан")}
+      </div>
+
+      <div class="food-price">
+        ${food.price} ₽
+      </div>
+
+      ${
+        food.comment
+          ? `<div class="food-comment">
+              ${escapeHtml(food.comment)}
+             </div>`
+          : ""
+      }
+    `;
+
+    foodList.appendChild(card);
+
+  });
+}
+
+
+/* -----------------------------
+   ПЛАНИРОВАНИЕ
+----------------------------- */
+
+function renderPlanner() {
+
+  plannerBody.innerHTML = "";
+
+  const dates = getWeekDates();
+
+
+  dates.forEach(date => {
+
+    const dateString = formatShortDate(date);
+
+    const row = document.createElement("div");
+
+    row.className = "planner-row";
+
+
+    const dayCell = document.createElement("div");
+
+    dayCell.className = "day-cell";
+
+    dayCell.innerHTML = `
+      <div class="day-number">
+        ${date.getDate()}
+      </div>
+
+      <div class="day-name">
+        ${date.toLocaleDateString("ru-RU", {
+          weekday: "short"
+        })}
+      </div>
+    `;
+
+    row.appendChild(dayCell);
+
+
+    ["breakfast", "lunch", "dinner"].forEach(type => {
+
+      const cell = document.createElement("div");
+
+      cell.className = "meal-cell";
+
+
+      const cellMeals = meals.filter(
+        meal =>
+          meal.date === dateString &&
+          meal.mealType === type
+      );
+
+
+      if (cellMeals.length === 0) {
+
+        const button = document.createElement("button");
+
+        button.className = "add-meal";
+
+        button.textContent = "+ Добавить";
+
+        button.addEventListener("click", () => {
+
+          openMealModal(date, type);
+
+        });
+
+        cell.appendChild(button);
+
+      } else {
+
+        cellMeals.forEach(meal => {
+
+          const food =
+            foods.find(item => item.id === meal.foodId);
+
+          if (!food) return;
+
+
+          const item = document.createElement("div");
+
+          item.className = "meal-item";
+
+          let personText = "";
+
+          if (meal.person === "me") {
+            personText = "Мне";
+          }
+
+          if (meal.person === "husband") {
+            personText = "Мужу";
+          }
+
+          if (meal.person === "both") {
+            personText = "Нам обоим";
+          }
+
+
+          item.innerHTML = `
+            <strong>
+              ${escapeHtml(food.name)}
+            </strong>
+
+            <div class="meal-person">
+              ${personText}
+            </div>
+
+            <div class="meal-price">
+              ${meal.person === "both"
+                ? food.price
+                : food.price} ₽
+            </div>
+
+            <button class="delete-meal">
+              ×
+            </button>
+          `;
+
+
+          item
+            .querySelector(".delete-meal")
+            .addEventListener("click", async event => {
+
+              event.stopPropagation();
+
+              await deleteDoc(
+                doc(db, "meals", meal.id)
+              );
+
+              await loadMeals();
+
+            });
+
+
+          cell.appendChild(item);
+
+        });
+
+
+        const addButton = document.createElement("button");
+
+        addButton.className = "add-meal";
+
+        addButton.textContent = "+ Ещё";
+
+        addButton.style.minHeight = "40px";
+
+        addButton.addEventListener("click", () => {
+
+          openMealModal(date, type);
+
+        });
+
+        cell.appendChild(addButton);
+      }
+
+
+      row.appendChild(cell);
+
+    });
+
+
+    plannerBody.appendChild(row);
+
+  });
+
+
+  updateSummary();
+}
+
 
 function updateSummary() {
 
-    const calories = meals.reduce(
-        (sum, meal) => sum + meal.calories,
-        0
-    );
+  let total = 0;
 
-    const protein = meals.reduce(
-        (sum, meal) => sum + meal.protein,
-        0
-    );
+  const days = new Set();
 
-    const cost = meals.reduce(
-        (sum, meal) => sum + meal.price,
-        0
-    );
 
-    document.getElementById("totalCalories").textContent =
-        calories;
+  meals.forEach(meal => {
 
-    document.getElementById("totalProtein").textContent =
-        protein;
+    const food =
+      foods.find(item => item.id === meal.foodId);
 
-    document.getElementById("totalCost").textContent =
-        cost;
+    if (!food) return;
+
+    total += Number(food.price);
+
+    days.add(meal.date);
+
+  });
+
+
+  weekTotal.textContent =
+    `${total} ₽`;
+
+  plannedDays.textContent =
+    days.size;
+
 }
 
-function showCurrentDate() {
 
-    const today = new Date();
+/* -----------------------------
+   МОДАЛКА ПЛАНИРОВАНИЯ
+----------------------------- */
 
-    const date = today.toLocaleDateString("ru-RU", {
-        weekday: "long",
-        day: "numeric",
-        month: "long"
+function openMealModal(date, mealType) {
+
+  selectedDate = date;
+  selectedMealType = mealType;
+  selectedPerson = "me";
+
+
+  document.getElementById("mealModalTitle").textContent =
+    getMealName(mealType);
+
+
+  document.getElementById("mealModalDate").textContent =
+    formatDate(date);
+
+
+  document
+    .getElementById("mealModal")
+    .classList.remove("hidden");
+
+
+  updatePersonButtons();
+
+  updateFoodSelect();
+
+}
+
+
+document
+  .getElementById("closeMealModal")
+  .addEventListener("click", () => {
+
+    document
+      .getElementById("mealModal")
+      .classList.add("hidden");
+
+  });
+
+
+document
+  .querySelectorAll(".person-btn")
+  .forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      selectedPerson =
+        button.dataset.person;
+
+      updatePersonButtons();
+
     });
 
-    document.getElementById("currentDate").textContent =
-        date.charAt(0).toUpperCase() + date.slice(1);
+  });
+
+
+function updatePersonButtons() {
+
+  document
+    .querySelectorAll(".person-btn")
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.person === selectedPerson
+      );
+
+    });
+
 }
 
-showCurrentDate();
-renderMeals();
+
+function updateFoodSelect() {
+
+  const select =
+    document.getElementById("mealFood");
+
+  select.innerHTML =
+    `<option value="">Выберите блюдо</option>`;
+
+
+  foods.forEach(food => {
+
+    const option =
+      document.createElement("option");
+
+    option.value = food.id;
+
+    option.textContent =
+      `${food.name} — ${food.price} ₽`;
+
+    select.appendChild(option);
+
+  });
+
+}
+
+
+document
+  .getElementById("saveMealBtn")
+  .addEventListener("click", saveMeal);
+
+
+async function saveMeal() {
+
+  const foodId =
+    document.getElementById("mealFood").value;
+
+
+  if (!foodId) {
+
+    alert("Выбери блюдо");
+
+    return;
+
+  }
+
+
+  await addDoc(
+    collection(db, "meals"),
+    {
+      date: formatShortDate(selectedDate),
+      mealType: selectedMealType,
+      person: selectedPerson,
+      foodId
+    }
+  );
+
+
+  document
+    .getElementById("mealModal")
+    .classList.add("hidden");
+
+
+  document.getElementById("mealFood").value = "";
+
+
+  await loadMeals();
+
+}
+
+
+/* -----------------------------
+   НЕДЕЛЯ
+----------------------------- */
+
+document
+  .getElementById("prevWeek")
+  .addEventListener("click", async () => {
+
+    currentWeekStart.setDate(
+      currentWeekStart.getDate() - 7
+    );
+
+    updateWeekHeader();
+
+    await loadMeals();
+
+  });
+
+
+document
+  .getElementById("nextWeek")
+  .addEventListener("click", async () => {
+
+    currentWeekStart.setDate(
+      currentWeekStart.getDate() + 7
+    );
+
+    updateWeekHeader();
+
+    await loadMeals();
+
+  });
+
+
+document
+  .getElementById("todayBtn")
+  .addEventListener("click", async () => {
+
+    currentWeekStart =
+      getMonday(new Date());
+
+    updateWeekHeader();
+
+    await loadMeals();
+
+  });
+
+
+function updateWeekHeader() {
+
+  const dates = getWeekDates();
+
+  const first = dates[0];
+  const last = dates[6];
+
+
+  currentWeek.textContent =
+    `${first.getDate()} ${first.toLocaleDateString("ru-RU", {
+      month: "short"
+    })} — ${last.getDate()} ${last.toLocaleDateString("ru-RU", {
+      month: "short"
+    })}`;
+
+
+  weekLabel.textContent =
+    `Неделя ${first.toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "long"
+    })} — ${last.toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "long"
+    })}`;
+
+}
+
+
+/* -----------------------------
+   БЕЗОПАСНЫЙ ТЕКСТ
+----------------------------- */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+
+/* -----------------------------
+   ЗАПУСК
+----------------------------- */
+
+async function init() {
+
+  try {
+
+    updateWeekHeader();
+
+    await loadFoods();
+
+    await loadMeals();
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Не удалось подключиться к Firebase. Проверь firebaseConfig и настройки Firestore."
+    );
+
+  }
+
+}
+
+
+init();
