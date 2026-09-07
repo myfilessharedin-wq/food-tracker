@@ -1,173 +1,190 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
 
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Моя еда">
+  <title>Моя еда</title>
 
-    <title>Моя еда</title>
-
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <header class="app-header">
-        <div>
-            <h1>Моя еда</h1>
-            <p id="currentDate"></p>
-        </div>
-    </header>
+  <header class="top">
+    <div>
+      <h1>Моя еда</h1>
+      <div id="weekLabel" class="week-label"></div>
+    </div>
 
-    <main class="container">
+    <button id="todayBtn" class="secondary-btn">
+      Сегодня
+    </button>
+  </header>
 
-        <section class="summary">
-            <div class="summary-card">
-                <span>Калории</span>
-                <strong id="totalCalories">0</strong>
-                <small>ккал</small>
-            </div>
 
-            <div class="summary-card">
-                <span>Белок</span>
-                <strong id="totalProtein">0</strong>
-                <small>г</small>
-            </div>
+  <main>
 
-            <div class="summary-card">
-                <span>Расходы</span>
-                <strong id="totalCost">0</strong>
-                <small>₽</small>
-            </div>
-        </section>
+    <section class="week-navigation">
+      <button id="prevWeek">‹</button>
 
-        <section class="meals-section">
+      <div id="currentWeek"></div>
 
-            <div class="section-title">
-                <h2>Сегодня</h2>
-                <button class="add-button" onclick="openAddMeal()">
-                    + Добавить
-                </button>
-            </div>
+      <button id="nextWeek">›</button>
+    </section>
 
-            <div id="mealsList"></div>
 
-            <div id="emptyState" class="empty-state">
-                <div class="empty-icon">🍽️</div>
-                <h3>Пока ничего нет</h3>
-                <p>Добавь свой первый приём пищи</p>
-                <button onclick="openAddMeal()">Добавить блюдо</button>
-            </div>
+    <section class="summary">
 
-        </section>
+      <div class="summary-card">
+        <span>Неделя</span>
+        <strong id="weekTotal">0 ₽</strong>
+      </div>
 
-    </main>
+      <div class="summary-card">
+        <span>Дней запланировано</span>
+        <strong id="plannedDays">0</strong>
+      </div>
 
-    <!-- Модальное окно -->
-    <div id="modal" class="modal hidden">
+    </section>
 
-        <div class="modal-content">
 
-            <div class="modal-header">
-                <h2>Добавить блюдо</h2>
-                <button onclick="closeModal()">×</button>
-            </div>
+    <section class="planner">
 
-            <label>
-                Приём пищи
-                <select id="mealType">
-                    <option value="breakfast">Завтрак</option>
-                    <option value="lunch">Обед</option>
-                    <option value="dinner">Ужин</option>
-                    <option value="snack">Перекус</option>
-                </select>
-            </label>
+      <div class="planner-header">
+        <div>День</div>
+        <div>Завтрак</div>
+        <div>Обед</div>
+        <div>Ужин</div>
+      </div>
 
-            <label>
-                Название блюда
-                <input
-                    type="text"
-                    id="mealName"
-                    placeholder="Например, курица терияки"
-                >
-            </label>
+      <div id="plannerBody"></div>
 
-            <label>
-                Магазин
-                <input
-                    type="text"
-                    id="mealStore"
-                    placeholder="Например, ВкусВилл"
-                >
-            </label>
+    </section>
 
-            <div class="two-columns">
 
-                <label>
-                    Цена, ₽
-                    <input
-                        type="number"
-                        id="mealPrice"
-                        placeholder="320"
-                    >
-                </label>
+    <section class="catalog-section">
 
-                <label>
-                    Калории
-                    <input
-                        type="number"
-                        id="mealCalories"
-                        placeholder="450"
-                    >
-                </label>
+      <div class="section-title">
+        <h2>Мои блюда</h2>
 
-            </div>
+        <button id="addFoodBtn" class="add-btn">
+          + Блюдо
+        </button>
+      </div>
 
-            <div class="three-columns">
+      <div id="foodList" class="food-list"></div>
 
-                <label>
-                    Белки
-                    <input
-                        type="number"
-                        id="mealProtein"
-                        placeholder="30"
-                    >
-                </label>
+    </section>
 
-                <label>
-                    Жиры
-                    <input
-                        type="number"
-                        id="mealFat"
-                        placeholder="15"
-                    >
-                </label>
+  </main>
 
-                <label>
-                    Углеводы
-                    <input
-                        type="number"
-                        id="mealCarbs"
-                        placeholder="40"
-                    >
-                </label>
 
-            </div>
+  <!-- Модальное окно блюда -->
 
-            <button class="save-button" onclick="saveMeal()">
-                Добавить блюдо
-            </button>
+  <div id="foodModal" class="modal hidden">
 
-        </div>
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h2>Новое блюдо</h2>
+
+        <button class="close-btn" id="closeFoodModal">
+          ×
+        </button>
+      </div>
+
+      <label>
+        Название блюда
+        <input id="foodName" type="text" placeholder="Например, паста с курицей">
+      </label>
+
+      <label>
+        Магазин
+        <input id="foodStore" type="text" placeholder="Например, ВкусВилл">
+      </label>
+
+      <label>
+        Цена
+        <input id="foodPrice" type="number" min="0" step="1" placeholder="399">
+      </label>
+
+      <label>
+        Комментарий
+        <textarea id="foodComment" placeholder="Например, любимая паста"></textarea>
+      </label>
+
+      <button id="saveFoodBtn" class="primary-btn">
+        Сохранить блюдо
+      </button>
 
     </div>
 
-    <script src="app.js"></script>
+  </div>
+
+
+  <!-- Модальное окно планирования -->
+
+  <div id="mealModal" class="modal hidden">
+
+    <div class="modal-content">
+
+      <div class="modal-header">
+
+        <div>
+          <h2 id="mealModalTitle">Добавить еду</h2>
+          <div id="mealModalDate" class="modal-date"></div>
+        </div>
+
+        <button class="close-btn" id="closeMealModal">
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="person-buttons">
+
+        <button class="person-btn" data-person="me">
+          Мне
+        </button>
+
+        <button class="person-btn" data-person="husband">
+          Мужу
+        </button>
+
+        <button class="person-btn" data-person="both">
+          Нам обоим
+        </button>
+
+      </div>
+
+
+      <label>
+        Блюдо
+
+        <select id="mealFood">
+          <option value="">Выберите блюдо</option>
+        </select>
+
+      </label>
+
+
+      <button id="saveMealBtn" class="primary-btn">
+        Добавить в план
+      </button>
+
+
+      <div id="existingMeals" class="existing-meals"></div>
+
+    </div>
+
+  </div>
+
+
+  <script type="module" src="app.js"></script>
 
 </body>
 </html>
